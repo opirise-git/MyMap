@@ -1,6 +1,6 @@
-// Firebase 최신 모듈 단일 임포트
+// Firebase 최신 모듈 임포트 (onSnapshot 추가됨)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDM9QGDX-EA_gGVZVE3aepmxq7LsGqlbok",
@@ -14,16 +14,58 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 전역(window) 객체에 할당하여 HTML의 onclick 이벤트에서 접근 가능하도록 함
 window.db = db;
 window.collection = collection;
 window.addDoc = addDoc;
 
-console.log("🔥 Firebase 로직 분리 완료 및 연결 성공!");
+/* ==========================================
+   실시간 UI 렌더링 로직 (🔥 핵심 추가 부분)
+   ========================================== */
+// 목표 수치(타겟) 하드코딩 - 나중에는 이 값도 DB(Goals 컬렉션)에서 가져오면 완벽해집니다.
+const TARGET_READ = 3;  
+const TARGET_WALK = 100; 
+
+// progress 컬렉션에 실시간 리스너 장착
+onSnapshot(collection(db, "progress"), (snapshot) => {
+    let readSum = 0;
+    let walkSum = 0;
+
+    // 1. DB의 모든 데이터를 돌면서 goalId별로 누적 합산을 구함
+    snapshot.forEach((doc) => {
+        const data = doc.data();
+        if(data.goalId === 'goal_read_001') readSum += data.valueToAdd;
+        if(data.goalId === 'goal_walk_002') walkSum += data.valueToAdd;
+    });
+
+    // 자바스크립트의 소수점 오류 방지 (예: 2.2000000001)
+    readSum = Math.round(readSum * 10) / 10;
+    walkSum = Math.round(walkSum * 10) / 10;
+
+    // 2. 퍼센트 계산 (100%를 넘지 않도록 처리)
+    let readPercent = Math.min((readSum / TARGET_READ) * 100, 100);
+    let walkPercent = Math.min((walkSum / TARGET_WALK) * 100, 100);
+
+    // 3. UI 업데이트 (HTML ID로 찾아가서 텍스트와 게이지 바 길이 수정)
+    // 독서 카드
+    document.getElementById('text-read-current').innerText = `${readSum}권`;
+    document.getElementById('bar-read').style.width = `${readPercent}%`;
+
+    // 걷기 카드
+    document.getElementById('text-walk-current').innerText = `${walkSum}km`;
+    document.getElementById('bar-walk').style.width = `${walkPercent}%`;
+
+    // 오른쪽 마일스톤 로드맵 카드 업데이트
+    document.getElementById('text-roadmap-read').innerText = `현재 ${readSum} / 2권`; // 마일스톤 노드 텍스트
+    
+    // 로드맵 전체 세로 줄 진행률 (단순히 두 목표의 평균 진행률로 시뮬레이션)
+    let totalPercent = (readPercent + walkPercent) / 2;
+    document.getElementById('bar-roadmap-main').style.height = `${totalPercent}%`;
+});
+
 
 /* ==========================================
-    UI 제어 모달 로직 
-    ========================================== */
+   UI 제어 모달 로직 
+   ========================================== */
 const modal = document.getElementById('goalModal');
 const body = document.body;
 let currentEditingGoalId = null;
@@ -46,8 +88,8 @@ window.closeModal = function() {
 }
 
 /* ==========================================
-    데이터 DB 전송 로직
-    ========================================== */
+   데이터 DB 전송 로직
+   ========================================== */
 window.saveModification = async function() {
     const reason = document.getElementById('changeReason').value;
     const newTarget = document.getElementById('newTarget').value;
@@ -83,8 +125,8 @@ window.addProgress = async function(goalId, inputId) {
             valueToAdd: Number(val),
             timestamp: new Date()
         });
-        alert(`DB에 [${goalId}] 목표에 대한 ${val} 기록이 추가되었습니다!`);
-        document.getElementById(inputId).value = '';
+        // alert() 창은 UX의 흐름을 깰 수 있어, 게이지가 오르는 시각 효과만 남기기 위해 생략했습니다.
+        document.getElementById(inputId).value = ''; 
     } catch (e) {
         console.error("Error adding progress: ", e);
     }
