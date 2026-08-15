@@ -306,54 +306,111 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script>
-        // Modal Logic
+<!-- Scripts (Firebase v10 Modular SDK 적용) -->
+    <script type="module">
+        // Firebase 최신 모듈 임포트
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, onSnapshot } 
+            from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // ⚠️ 여기에 1단계에서 받은 가을님의 firebaseConfig를 덮어쓰세요!
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "firebase/app";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+        
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyDM9QGDX-EA_gGVZVE3aepmxq7LsGqlbok",
+          authDomain: "myliferoadmap-a9632.firebaseapp.com",
+          projectId: "myliferoadmap-a9632",
+          storageBucket: "myliferoadmap-a9632.firebasestorage.app",
+          messagingSenderId: "50145529212",
+          appId: "1:50145529212:web:37c358e1b1d9e207f8a8f9"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+
+        // Firebase 초기화
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // 전역에서 HTML onClick 속성으로 함수를 부르기 위해 window 객체에 할당
+        window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc;
+
+        console.log("🔥 Firebase가 성공적으로 연결되었습니다!");
+
+        /* ==========================================
+           기존 UI 제어 모달 로직 (그대로 유지)
+           ========================================== */
         const modal = document.getElementById('goalModal');
         const body = document.body;
         
-        function openEditModal(goalId) {
-            // In a real app, fetch data based on goalId here
+        window.openEditModal = function(goalId) {
             modal.classList.remove('opacity-0', 'pointer-events-none');
             body.classList.add('modal-active');
         }
         
-        function openGoalModal() {
+        window.openGoalModal = function() {
             openEditModal('new');
         }
 
-        function closeModal() {
+        window.closeModal = function() {
             modal.classList.add('opacity-0', 'pointer-events-none');
             body.classList.remove('modal-active');
         }
 
-        function saveModification() {
+        /* ==========================================
+           데이터 DB 전송 로직 (Firebase 연동)
+           ========================================== */
+        window.saveModification = async function() {
             const reason = document.getElementById('changeReason').value;
+            const newTarget = document.getElementById('newTarget').value;
+            
             if(!reason) {
                 alert('수정 사유를 반드시 입력해야 합니다.');
                 return;
             }
-            // Firebase submit logic would go here
-            alert('수정 내역이 히스토리에 기록되었습니다.');
-            closeModal();
-            document.getElementById('changeReason').value = ''; // reset
+
+            try {
+                // 'revisions' 컬렉션에 데이터 저장
+                const docRef = await addDoc(collection(db, "revisions"), {
+                    goalId: "goal-2", // 임시 고정값
+                    newTarget: Number(newTarget),
+                    reason: reason,
+                    timestamp: new Date()
+                });
+                console.log("Document written with ID: ", docRef.id);
+                alert('DB에 수정 내역이 기록되었습니다! (콘솔 확인)');
+                
+                closeModal();
+                document.getElementById('changeReason').value = '';
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                alert('저장에 실패했습니다.');
+            }
         }
 
-        function addProgress(inputId) {
+        window.addProgress = async function(inputId) {
             const val = document.getElementById(inputId).value;
             if(!val) return;
-            // Firebase progress update logic would go here
-            alert(val + ' 기록이 수동으로 추가되었습니다. (Firebase 연동 예정)');
-            document.getElementById(inputId).value = '';
-        }
 
-        // Close modal on escape key
-        document.onkeydown = function(evt) {
-            evt = evt || window.event;
-            if (evt.keyCode == 27) {
-                closeModal();
+            try {
+                // 'progress' 컬렉션에 기록 저장
+                await addDoc(collection(db, "progress"), {
+                    goalType: inputId, // 'readingInput' 또는 'walkingInput'
+                    valueToAdd: Number(val),
+                    timestamp: new Date()
+                });
+                alert(`DB에 ${val} 기록이 추가되었습니다!`);
+                document.getElementById(inputId).value = '';
+            } catch (e) {
+                console.error("Error adding progress: ", e);
             }
-        };
+        }
     </script>
 </body>
 </html>
