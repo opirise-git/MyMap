@@ -114,7 +114,6 @@
                                 <p class="text-xs text-gray-500 mt-1">D-25 · 독서</p>
                             </div>
                         </div>
-                        <!-- Options Dropdown placeholder -->
                         <button onclick="openEditModal('goal-1')" class="text-gray-400 hover:text-gray-700 p-1">
                             <i class="fa-solid fa-ellipsis-vertical"></i>
                         </button>
@@ -127,7 +126,6 @@
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4 overflow-hidden relative">
                         <div class="bg-orange-500 h-2.5 rounded-full" style="width: 60%"></div>
-                        <!-- Ghost bar for recommended pace -->
                         <div class="absolute top-0 left-0 h-2.5 border-r-2 border-gray-800 opacity-30 z-10" style="width: 50%;" title="권장 진척도"></div>
                     </div>
                     
@@ -164,17 +162,14 @@
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2 overflow-hidden relative">
                         <div class="bg-green-500 h-2.5 rounded-full" style="width: 64%"></div>
-                        <!-- Ghost bar (Slightly behind pace) -->
                         <div class="absolute top-0 left-0 h-2.5 border-r-2 border-red-500 opacity-50 z-10" style="width: 70%;" title="권장 진척도"></div>
                     </div>
                     
-                    <!-- Notification snippet inside card -->
                     <div class="mt-3 bg-red-50 text-red-700 text-xs p-2 rounded flex items-start">
                         <i class="fa-solid fa-circle-exclamation mt-0.5 mr-2"></i>
                         <p>목표 달성까지 페이스가 약간 느립니다. 오늘 저녁 2km 추가 걷기를 추천해요!</p>
                     </div>
                     
-                     <!-- Manual Input Section (Fallback) -->
                      <div class="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
                         <span class="text-sm text-gray-600 font-medium">수동 기록 추가 (보정용)</span>
                         <div class="flex items-center space-x-2">
@@ -191,13 +186,11 @@
                     <h2 class="text-lg font-bold text-gray-800 mb-6 border-b pb-2">마일스톤 로드맵</h2>
                     
                     <div class="relative pl-4 pb-8">
-                        <!-- Dynamic lines -->
                         <div class="roadmap-line"></div>
                         <div class="roadmap-progress" style="height: 60%;"></div>
                         
-                        <!-- Nodes -->
                         <div class="space-y-8 relative">
-                            <!-- Node 1 (Completed) -->
+                            <!-- Node 1 -->
                             <div class="roadmap-node flex items-center">
                                 <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center ring-4 ring-white shadow-sm flex-shrink-0 z-10">
                                     <i class="fa-solid fa-check text-sm"></i>
@@ -208,7 +201,7 @@
                                 </div>
                             </div>
                             
-                            <!-- Node 2 (Completed) -->
+                            <!-- Node 2 -->
                             <div class="roadmap-node flex items-center">
                                 <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center ring-4 ring-white shadow-sm flex-shrink-0 z-10">
                                     <i class="fa-solid fa-check text-sm"></i>
@@ -219,7 +212,7 @@
                                 </div>
                             </div>
                             
-                            <!-- Node 3 (Current/Active) -->
+                            <!-- Node 3 -->
                             <div class="roadmap-node flex items-center">
                                 <div class="w-8 h-8 rounded-full bg-white border-4 border-blue-500 text-blue-500 flex items-center justify-center ring-4 ring-white shadow-sm flex-shrink-0 z-10 animate-pulse">
                                     <i class="fa-solid fa-spinner fa-spin-pulse text-xs"></i>
@@ -230,7 +223,7 @@
                                 </div>
                             </div>
                             
-                            <!-- Node 4 (Locked) -->
+                            <!-- Node 4 -->
                             <div class="roadmap-node flex items-center opacity-50">
                                 <div class="w-8 h-8 rounded-full bg-gray-200 border-2 border-gray-300 text-gray-400 flex items-center justify-center ring-4 ring-white flex-shrink-0 z-10">
                                     <i class="fa-solid fa-lock text-xs"></i>
@@ -247,12 +240,11 @@
         </div>
     </main>
 
-    <!-- Goal Edit/History Modal (Hidden by default) -->
+    <!-- Goal Edit/History Modal -->
     <div id="goalModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
         <div class="absolute w-full h-full bg-gray-900 opacity-50" onclick="closeModal()"></div>
         
         <div class="bg-white w-11/12 md:max-w-md mx-auto rounded-xl shadow-lg z-50 overflow-y-auto max-h-[90vh]">
-            
             <div class="py-4 text-left px-6">
                 <!--Title-->
                 <div class="flex justify-between items-center pb-3 border-b border-gray-100 mb-4">
@@ -306,33 +298,24 @@
         </div>
     </div>
 
-<!-- Scripts (Firebase v10 Modular SDK 적용) -->
+    <!-- Scripts (Firebase v10 Modular SDK 적용 완료) -->
     <script type="module">
-        // Firebase 최신 모듈 임포트
+        // Firebase 최신 모듈 단일 임포트
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, onSnapshot } 
             from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // ⚠️ 여기에 1단계에서 받은 가을님의 firebaseConfig를 덮어쓰세요!
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "firebase/app";
-        // TODO: Add SDKs for Firebase products that you want to use
-        // https://firebase.google.com/docs/web/setup#available-libraries
-        
         // Your web app's Firebase configuration
         const firebaseConfig = {
-          apiKey: "AIzaSyDM9QGDX-EA_gGVZVE3aepmxq7LsGqlbok",
-          authDomain: "myliferoadmap-a9632.firebaseapp.com",
-          projectId: "myliferoadmap-a9632",
-          storageBucket: "myliferoadmap-a9632.firebasestorage.app",
-          messagingSenderId: "50145529212",
-          appId: "1:50145529212:web:37c358e1b1d9e207f8a8f9"
+            apiKey: "AIzaSyDM9QGDX-EA_gGVZVE3aepmxq7LsGqlbok",
+            authDomain: "myliferoadmap-a9632.firebaseapp.com",
+            projectId: "myliferoadmap-a9632",
+            storageBucket: "myliferoadmap-a9632.firebasestorage.app",
+            messagingSenderId: "50145529212",
+            appId: "1:50145529212:web:37c358e1b1d9e207f8a8f9"
         };
         
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-
-        // Firebase 초기화
+        // Firebase 초기화 (딱 한 번만 실행)
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
