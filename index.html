@@ -4,21 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Life Roadmap Dashboard</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
-        
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f3f4f6; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        
-        .roadmap-line { position: absolute; top: 24px; left: 24px; bottom: 24px; width: 4px; background: #e2e8f0; z-index: 0; }
-        .roadmap-progress { position: absolute; top: 24px; left: 24px; width: 4px; background: #3b82f6; z-index: 1; transition: height 1s ease-out; }
-        .roadmap-node { position: relative; z-index: 2; }
-        
         .modal { transition: opacity 0.25s ease; }
         body.modal-active { overflow-x: hidden; overflow-y: hidden !important; }
         .progress-bar-fill { transition: width 0.8s ease-out; }
@@ -26,7 +18,9 @@
 </head>
 <body class="text-gray-800 antialiased min-h-screen flex flex-col">
 
-    <!-- 상단 네비게이션 바 -->
+    <!-- ==========================================
+         [1] 네비게이션 바 (App Bar)
+         ========================================== -->
     <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -38,7 +32,9 @@
         </div>
     </nav>
 
-    <!-- 메인 대시보드 영역 -->
+    <!-- ==========================================
+         [2] 메인 대시보드 GUI (Header & Card Container)
+         ========================================== -->
     <main class="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         
         <!-- 헤더 및 새 목표 버튼 -->
@@ -52,47 +48,26 @@
             </button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- 왼쪽: 현재 진행 중인 목표 (동적 렌더링 컨테이너) -->
-            <div class="lg:col-span-2 space-y-6">
-                <h2 class="text-lg font-bold text-gray-800 border-b pb-2">현재 진행 중인 목표</h2>
-                <div id="goals-container" class="space-y-6">
-                    <!-- DB 데이터 기반으로 이곳에 목표 카드가 자동 생성됩니다 -->
-                </div>
-            </div>
-
-            <!-- 오른쪽: 마일스톤 로드맵 -->
-            <div class="lg:col-span-1">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full relative">
-                    <h2 class="text-lg font-bold text-gray-800 mb-6 border-b pb-2">마일스톤 로드맵</h2>
-                    
-                    <div class="relative pl-4 pb-8">
-                        <div class="roadmap-line"></div>
-                        <div id="bar-roadmap-main" class="roadmap-progress" style="height: 0%;"></div>
-                        <div id="roadmap-nodes-container" class="space-y-8 relative">
-                            <!-- 로드맵 시작 노드 -->
-                             <div class="roadmap-node flex items-center">
-                                <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center ring-4 ring-white shadow-sm flex-shrink-0 z-10">
-                                    <i class="fa-solid fa-check text-sm"></i>
-                                </div>
-                                <div class="ml-4">
-                                    <p class="font-bold text-gray-800 text-sm">프로젝트 시작</p>
-                                    <p class="text-xs text-gray-500">데이터 연동 성공</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- 
+            카드 뷰 (Card GUI) 컨테이너
+            - 로드맵이 사라진 대신 카드가 화면을 넓게 쓰도록 grid-cols-2 로 변경했습니다.
+            - 실제 카드 HTML은 firebase-logic.js에서 동적으로 주입됩니다.
+        -->
+        <h2 class="text-lg font-bold text-gray-800 border-b pb-2 mb-6">현재 진행 중인 목표</h2>
+        <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- DB 데이터 기반으로 이곳에 카드가 자동 주입됩니다 -->
         </div>
     </main>
 
-    <!-- 새 목표 설정 모달 창 -->
+    <!-- ==========================================
+         [3] 새 목표 설정 뷰 (Modal GUI)
+         ========================================== -->
     <div id="goalModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
         <div class="absolute w-full h-full bg-gray-900 opacity-50" onclick="closeModal()"></div>
         <div class="bg-white w-11/12 md:max-w-md mx-auto rounded-xl shadow-lg z-50 overflow-y-auto max-h-[90vh]">
             <div class="py-4 text-left px-6">
+                
+                <!-- 모달 헤더 -->
                 <div class="flex justify-between items-center pb-3 border-b border-gray-100 mb-4">
                     <p class="text-xl font-bold text-gray-800">새 목표 설정</p>
                     <div class="cursor-pointer z-50 text-gray-400 hover:text-gray-700 transition" onclick="closeModal()">
@@ -100,18 +75,40 @@
                     </div>
                 </div>
                 
+                <!-- 폼 시작 -->
                 <form id="newGoalForm" onsubmit="event.preventDefault(); saveNewGoal();">
-                    <!-- 1. 목표 이름 -->
+                    
+                    <!-- 입력 1: 목표 이름 -->
                     <div class="mb-5">
                         <label class="block text-gray-700 text-sm font-bold mb-2">어떤 목표를 달성하고 싶으신가요?</label>
                         <input type="text" id="goalTitle" placeholder="예: 매일 아침 조깅하기" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
                     </div>
+
+                    <!-- 입력 2: 진행 사항 업데이트 방식 (새로 추가됨) -->
+                    <div class="mb-5 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
+                        <label class="block text-gray-800 text-sm font-bold mb-3">진행 사항 업데이트 방식</label>
+                        <div class="flex flex-col space-y-3">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="radio" name="updateType" value="add" class="mt-0.5 mr-2" checked>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-800 block">진척도 추가</span>
+                                    <span class="text-xs text-gray-500 block">예) 독서: 기존 20%에 10%를 더해 30%로 만듦</span>
+                                </div>
+                            </label>
+                            <label class="flex items-start cursor-pointer">
+                                <input type="radio" name="updateType" value="set" class="mt-0.5 mr-2">
+                                <div>
+                                    <span class="text-sm font-medium text-gray-800 block">진척도 설정</span>
+                                    <span class="text-xs text-gray-500 block">예) 몸무게: 입력한 값 자체가 현재 달성률(%)이 됨</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
                     
-                    <!-- 2. 목표 기간 (규격화 버튼) -->
+                    <!-- 입력 3: 목표 기간 (버튼식) -->
                     <div class="mb-6">
                         <label class="block text-gray-700 text-sm font-bold mb-2">목표 기간</label>
                         
-                        <!-- 주 단위 그룹 -->
                         <div class="text-xs text-gray-400 mb-1.5 font-medium">주 단위</div>
                         <div class="flex flex-wrap gap-2 mb-3" id="durationWeeks">
                             <button type="button" onclick="selectDuration(7, this)" class="duration-btn border border-gray-300 text-gray-600 px-3 py-1.5 rounded-md text-sm hover:bg-gray-50">1주</button>
@@ -120,7 +117,6 @@
                             <button type="button" onclick="selectDuration(28, this)" class="duration-btn border border-gray-300 text-gray-600 px-3 py-1.5 rounded-md text-sm hover:bg-gray-50">4주</button>
                         </div>
 
-                        <!-- 월 단위 그룹 -->
                         <div class="text-xs text-gray-400 mb-1.5 font-medium">월 단위</div>
                         <div class="flex flex-wrap gap-2" id="durationMonths">
                             <button type="button" onclick="selectDuration(30, this)" class="duration-btn border border-gray-300 text-gray-600 px-3 py-1.5 rounded-md text-sm hover:bg-gray-50">1달</button>
@@ -144,7 +140,7 @@
         </div>
     </div>
 
-    <!-- 분리해둔 Firebase 로직 스크립트 불러오기 -->
+    <!-- 로직 스크립트 불러오기 -->
     <script type="module" src="./firebase-logic.js"></script>
 </body>
 </html>
