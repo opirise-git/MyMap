@@ -69,7 +69,6 @@ function renderDashboard() {
         const buttonColor = goal.updateType === 'set' ? 'bg-purple-50 text-purple-600 hover:bg-purple-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100';
         const focusColor = goal.updateType === 'set' ? 'focus:ring-purple-500 focus:border-purple-500' : 'focus:ring-blue-500 focus:border-blue-500';
 
-        // 카드 뷰 HTML (코멘트 입력란 추가)
         const cardHtml = `
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow relative">
                 <div class="flex justify-between items-start mb-4">
@@ -103,7 +102,6 @@ function renderDashboard() {
                             <button onclick="addProgressPercent('${goal.id}', 'input-${goal.id}', 'comment-${goal.id}')" class="${buttonColor} px-3 py-1.5 rounded-md text-sm font-medium transition-colors">기록</button>
                         </div>
                     </div>
-                    <!-- 코멘트 텍스트 입력 박스 (새로 추가됨) -->
                     <input type="text" id="comment-${goal.id}" placeholder="오늘의 기분을 입력해보세요" class="w-full text-xs text-gray-700 border-gray-200 rounded-md shadow-sm ${focusColor} px-3 py-2 border bg-gray-50 focus:bg-white transition-colors">
                 </div>
             </div>
@@ -117,19 +115,18 @@ function renderDashboard() {
    ========================================== */
 window.addProgressPercent = async function(goalId, inputId, commentId) {
     const val = Number(document.getElementById(inputId).value);
-    const commentVal = document.getElementById(commentId).value.trim(); // 입력된 코멘트 가져오기
+    const commentVal = document.getElementById(commentId).value.trim(); 
     
-    if(isNaN(val) || val === 0) return; // 퍼센트 값이 없거나 0이면 저장 안함
+    if(isNaN(val) || val === 0) return; 
 
     try {
         await addDoc(collection(db, "progress"), {
             goalId: goalId,
             value: val, 
-            comment: commentVal, // DB에 코멘트 저장
+            comment: commentVal, 
             timestamp: new Date()
         });
         
-        // 입력 후 인풋 박스 초기화
         document.getElementById(inputId).value = ''; 
         document.getElementById(commentId).value = ''; 
     } catch (e) {
@@ -203,7 +200,7 @@ window.selectDuration = function(days, btnElement) {
 }
 
 /* ==========================================
-   [UI 컨트롤] 히스토리 모달 로직 (코멘트 표시 추가)
+   [UI 컨트롤] 히스토리 모달 로직 (코멘트 디자인 개선)
    ========================================== */
 window.openHistoryModal = function(goalId, goalTitle, updateType) {
     const historyModal = document.getElementById('historyModal');
@@ -231,11 +228,13 @@ window.openHistoryModal = function(goalId, goalTitle, updateType) {
             const prefix = updateType === 'set' ? '=' : '+';
             const textColor = updateType === 'set' ? 'text-purple-600' : 'text-blue-600';
             
-            // 코멘트가 있을 경우에만 말풍선 스타일로 렌더링되도록 처리
+            // 🔥 시인성을 높인 말풍선 렌더링 영역 (배경: 진회색, 텍스트: 검정, 둥글기 증가)
             const commentHtml = log.comment 
-                ? `<div class="mt-2 text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded-md p-2 w-full break-words relative">
-                     <div class="absolute -top-1.5 left-4 w-3 h-3 bg-gray-50 border-t border-l border-gray-100 rotate-45"></div>
-                     <span class="relative z-10">${log.comment}</span>
+                ? `<div class="mt-2 w-full flex">
+                     <div class="relative text-sm text-gray-900 bg-gray-200 rounded-2xl px-3.5 py-2 w-fit max-w-[95%] break-words">
+                       <div class="absolute -top-1 left-4 w-3 h-3 bg-gray-200 rotate-45 rounded-sm"></div>
+                       <span class="relative z-10 leading-snug block">${log.comment}</span>
+                     </div>
                    </div>` 
                 : '';
 
