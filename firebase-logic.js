@@ -200,7 +200,7 @@ window.selectDuration = function(days, btnElement) {
 }
 
 /* ==========================================
-   [UI 컨트롤] 히스토리 모달 로직 (코멘트 디자인 개선)
+   [UI 컨트롤] 히스토리 모달 로직 (누적 100% 하이라이팅 추가)
    ========================================== */
 window.openHistoryModal = function(goalId, goalTitle, updateType) {
     const historyModal = document.getElementById('historyModal');
@@ -208,9 +208,24 @@ window.openHistoryModal = function(goalId, goalTitle, updateType) {
     
     document.getElementById('historyGoalTitle').innerText = goalTitle;
 
-    const goalLogs = rawProgressLogs
+    // 1. 과거 기록부터 순서대로 정렬 (누적합 계산을 위해 오름차순 정렬)
+    let goalLogs = rawProgressLogs
         .filter(log => log.goalId === goalId)
-        .sort((a, b) => b.timestamp - a.timestamp); 
+        .sort((a, b) => a.timestamp - b.timestamp); 
+
+    // 2. 모드에 따른 진척도 누적합 계산
+    let cumulative = 0;
+    goalLogs = goalLogs.map(log => {
+        if (updateType === 'add') {
+            cumulative += log.value;
+            return { ...log, currentTotal: cumulative };
+        } else {
+            return { ...log, currentTotal: log.value }; // 설정 모드는 입력값 자체가 전체 달성률
+        }
+    });
+
+    // 3. 최신 기록이 위로 오도록 다시 내림차순 정렬
+    goalLogs.sort((a, b) => b.timestamp - a.timestamp);
 
     listContainer.innerHTML = '';
 
@@ -226,9 +241,21 @@ window.openHistoryModal = function(goalId, goalTitle, updateType) {
             });
             
             const prefix = updateType === 'set' ? '=' : '+';
-            const textColor = updateType === 'set' ? 'text-purple-600' : 'text-blue-600';
             
-            // 🔥 시인성을 높인 말풍선 렌더링 영역 (배경: 진회색, 텍스트: 검정, 둥글기 증가)
+            // 🔥 100% 달성 또는 초과 여부 확인
+            const isOver100 = log.currentTotal >= 100;
+            
+            // 하이라이팅 스타일 정의
+            const highlightBg = isOver100 ? 'bg-amber-50/60 px-3 -mx-3 rounded-xl' : '';
+            const badgeHtml = isOver100 
+                ? `<span class="ml-2 text-[10px] font-bold text-white bg-amber-500 px-2 py-0.5 rounded-full shadow-sm">🎉 목표 100% 달성</span>` 
+                : '';
+                
+            // 초과 시 텍스트 폰트 굵기 강화
+            const textColor = updateType === 'set' 
+                ? (isOver100 ? 'text-purple-600 font-extrabold' : 'text-purple-600 font-bold') 
+                : (isOver100 ? 'text-blue-600 font-extrabold' : 'text-blue-600 font-bold');
+            
             const commentHtml = log.comment 
                 ? `<div class="mt-2 w-full flex">
                      <div class="relative text-sm text-gray-900 bg-gray-200 rounded-2xl px-3.5 py-2 w-fit max-w-[95%] break-words">
@@ -239,11 +266,14 @@ window.openHistoryModal = function(goalId, goalTitle, updateType) {
                 : '';
 
             const li = document.createElement('li');
-            li.className = 'flex flex-col py-3 border-b border-gray-100 last:border-0';
+            li.className = `flex flex-col py-3 border-b border-gray-100 last:border-0 transition-colors ${highlightBg}`;
             li.innerHTML = `
                 <div class="flex justify-between items-center w-full">
-                    <span class="text-sm text-gray-500">${dateString}</span>
-                    <span class="font-bold ${textColor}">${prefix}${log.value}%</span>
+                    <div class="flex items-center">
+                        <span class="text-sm ${isOver100 ? 'text-gray-800 font-medium' : 'text-gray-500'}">${dateString}</span>
+                        ${badgeHtml}
+                    </div>
+                    <span class="${textColor}">${prefix}${log.value}%</span>
                 </div>
                 ${commentHtml}
             `;
