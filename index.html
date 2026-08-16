@@ -18,9 +18,7 @@
 </head>
 <body class="text-gray-800 antialiased min-h-screen flex flex-col">
 
-    <!-- ==========================================
-         [1] 네비게이션 바 (App Bar)
-         ========================================== -->
+    <!-- [1] 네비게이션 바 -->
     <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -32,15 +30,10 @@
         </div>
     </nav>
 
-    <!-- ==========================================
-         [2] 메인 대시보드 GUI (Header & Card Container)
-         ========================================== -->
+    <!-- [2] 메인 대시보드 -->
     <main class="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        
-        <!-- 헤더 및 새 목표 버튼 -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <div>
-                <!-- 첨부해주신 하트 이미지로 교체된 부분 -->
                 <h1 class="text-2xl font-bold text-gray-900 flex items-center">
                     안녕하세요, 가을님!
                     <img src="image_a085ee.png" alt="하트 프로필" class="w-10 h-10 ml-2 object-contain drop-shadow-sm">
@@ -52,22 +45,17 @@
             </button>
         </div>
 
-        <!-- 카드 뷰 (Card GUI) 컨테이너 -->
         <h2 class="text-lg font-bold text-gray-800 border-b pb-2 mb-6">현재 진행 중인 목표</h2>
         <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- DB 데이터 기반으로 이곳에 카드가 자동 주입됩니다 -->
+            <!-- DB 데이터 기반으로 카드가 자동 주입됩니다 -->
         </div>
     </main>
 
-    <!-- ==========================================
-         [3] 새 목표 설정 뷰 (Modal GUI)
-         ========================================== -->
+    <!-- [3] 새 목표 설정 모달 -->
     <div id="goalModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
         <div class="absolute w-full h-full bg-gray-900 opacity-50" onclick="closeModal()"></div>
         <div class="bg-white w-11/12 md:max-w-md mx-auto rounded-xl shadow-lg z-50 overflow-y-auto max-h-[90vh]">
             <div class="py-4 text-left px-6">
-                
-                <!-- 모달 헤더 -->
                 <div class="flex justify-between items-center pb-3 border-b border-gray-100 mb-4">
                     <p class="text-xl font-bold text-gray-800">새 목표 설정</p>
                     <div class="cursor-pointer z-50 text-gray-400 hover:text-gray-700 transition" onclick="closeModal()">
@@ -75,16 +63,12 @@
                     </div>
                 </div>
                 
-                <!-- 폼 시작 -->
                 <form id="newGoalForm" onsubmit="event.preventDefault(); saveNewGoal();">
-                    
-                    <!-- 입력 1: 목표 이름 -->
                     <div class="mb-5">
                         <label class="block text-gray-700 text-sm font-bold mb-2">어떤 목표를 달성하고 싶으신가요?</label>
                         <input type="text" id="goalTitle" placeholder="예: 매일 아침 조깅하기" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
                     </div>
 
-                    <!-- 입력 2: 진행 사항 업데이트 방식 -->
                     <div class="mb-5 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
                         <label class="block text-gray-800 text-sm font-bold mb-3">진행 사항 업데이트 방식</label>
                         <div class="flex flex-col space-y-3">
@@ -105,7 +89,6 @@
                         </div>
                     </div>
                     
-                    <!-- 입력 3: 목표 기간 (버튼식) -->
                     <div class="mb-6">
                         <label class="block text-gray-700 text-sm font-bold mb-2">목표 기간</label>
                         
@@ -140,7 +123,30 @@
         </div>
     </div>
 
-    <!-- 로직 스크립트 불러오기 -->
+    <!-- [4] 히스토리 보기 모달 (새로 추가됨) -->
+    <div id="historyModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
+        <div class="absolute w-full h-full bg-gray-900 opacity-50" onclick="closeHistoryModal()"></div>
+        <div class="bg-white w-11/12 md:max-w-md mx-auto rounded-xl shadow-lg z-50 flex flex-col max-h-[80vh]">
+            <!-- 헤더 영역 -->
+            <div class="py-4 px-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">진척도 기록</p>
+                    <p id="historyGoalTitle" class="text-lg font-bold text-gray-800 mt-0.5">목표 이름</p>
+                </div>
+                <div class="cursor-pointer z-50 text-gray-400 hover:text-gray-700 transition p-2" onclick="closeHistoryModal()">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </div>
+            </div>
+            
+            <!-- 리스트 영역 (스크롤 적용) -->
+            <div class="p-6 overflow-y-auto flex-grow">
+                <ul id="historyList" class="space-y-1">
+                    <!-- 자바스크립트를 통해 이곳에 히스토리가 꽂힙니다 -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="./firebase-logic.js"></script>
 </body>
 </html>
