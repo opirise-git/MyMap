@@ -17,47 +17,55 @@ window.db = db;
 window.collection = collection;
 window.addDoc = addDoc;
 
-// 데이터를 임시 저장할 메모리
+// 메모리 캐시
 let goalsData = [];
-let progressData = {}; // { goalId: 누적퍼센트 }
+let rawProgressLogs = []; // 진척도 합산/덮어쓰기 로직을 위해 원본 로그 보관
 
 /* ==========================================
-   실시간 데이터 구독 및 화면 렌더링 (데이터 주도형)
+   실시간 데이터 구독
    ========================================== */
 const qGoals = query(collection(db, "goals"), orderBy("createdAt", "desc"));
+// 과거 기록부터 순서대로 가져오기 위해 orderBy 추가 (Set 방식 계산에 필수)
+const qProgress = query(collection(db, "progress"), orderBy("timestamp", "asc"));
 
-// 1. 목표 데이터 리스너
 onSnapshot(qGoals, (snapshot) => {
     goalsData = [];
-    snapshot.forEach((doc) => {
-        goalsData.push({ id: doc.id, ...doc.data() });
-    });
+    snapshot.forEach((doc) => goalsData.push({ id: doc.id, ...doc.data() }));
     renderDashboard();
 });
 
-// 2. 진척도(Progress) 데이터 리스너
-onSnapshot(collection(db, "progress"), (snapshot) => {
-    progressData = {};
-    snapshot.forEach((doc) => {
-        const data = doc.data();
-        if (!progressData[data.goalId]) progressData[data.goalId] = 0;
-        progressData[data.goalId] += data.percentageAdded;
-    });
+onSnapshot(qProgress, (snapshot) => {
+    rawProgressLogs = [];
+    snapshot.forEach((doc) => rawProgressLogs.push(doc.data()));
     renderDashboard();
 });
 
-// 3. UI 동적 렌더링 함수
+/* ==========================================
+   [카드 GUI] 동적 렌더링 함수
+   ========================================== */
 function renderDashboard() {
     const container = document.getElementById('goals-container');
-    container.innerHTML = ''; // 기존 뷰 초기화
-
-    let totalGlobalProgress = 0;
+    container.innerHTML = ''; // 화면 초기화
 
     goalsData.forEach(goal => {
-        // 해당 목표의 누적 진척도 (0 ~ 100 제한)
-        let currentProgress = progressData[goal.id] || 0;
-        currentProgress = Math.min(currentProgress, 100); 
-        totalGlobalProgress += currentProgress;
+        let currentProgress = 0;
+        
+        // 해당 목표의 로그만 필터링
+        const goalLogs = rawProgressLogs.filter(log => log.goalId === goal.id);
+
+        if (goalLogs.length > 0) {
+            // 🔥 핵심 로직: 목표의 updateType에 따라 계산 방식 분기
+            if (goal.updateType === 'set') {
+                // 진척도 설정 (Set): 가장 마지막에 기록된 값을 현재 진척도로 사용
+                currentProgress = goalLogs[goalLogs.length - 1].value;
+            } else {
+                // 진척도 추가 (Add) [기본값]: 모든 기록을 합산
+                currentProgress = goalLogs.reduce((sum, log) => sum + log.value, 0);
+            }
+        }
+        
+        // 100% 초과 방지
+        currentProgress = Math.min(currentProgress, 100);
 
         // D-Day 계산
         const deadlineDate = goal.deadline ? goal.deadline.toDate() : new Date();
@@ -65,58 +73,60 @@ function renderDashboard() {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const ddayText = diffDays > 0 ? `D-${diffDays}` : (diffDays === 0 ? "D-Day" : `D+${Math.abs(diffDays)}`);
 
-        // 카드 UI 컴포넌트 생성 (템플릿 리터럴)
+        // 입력창 플레이스홀더 및 버튼 텍스트 변경
+        const inputPlaceholder = goal.updateType === 'set' ? '= 설정할 퍼센트' : '+ 추가할 퍼센트';
+        const updateMethodLabel = goal.updateType === 'set' ? '진척도 설정' : '진척도 추가';
+        const buttonColor = goal.updateType === 'set' ? 'bg-purple-50 text-purple-600 hover:bg-purple-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100';
+        const focusColor = goal.updateType === 'set' ? 'focus:ring-purple-500 focus:border-purple-500' : 'focus:ring-blue-500 focus:border-blue-500';
+
+        // 카드 뷰 (HTML 템플릿)
         const cardHtml = `
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex items-center">
-                        <div class="bg-blue-50 text-blue-600 p-3 rounded-lg mr-4"><i class="fa-solid fa-bullseye text-xl"></i></div>
+                        <div class="${goal.updateType === 'set' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'} p-3 rounded-lg mr-4">
+                            <i class="fa-solid fa-bullseye text-xl"></i>
+                        </div>
                         <div>
                             <h3 class="font-bold text-lg text-gray-900">${goal.title}</h3>
-                            <p class="text-xs text-gray-500 mt-1">${ddayText} · ${goal.durationDays}일 계획</p>
+                            <p class="text-xs text-gray-500 mt-1">${ddayText} · ${goal.durationDays}일 계획 <span class="ml-1 text-[10px] bg-gray-100 px-1.5 py-0.5 rounded">${updateMethodLabel} 모드</span></p>
                         </div>
                     </div>
                 </div>
                 
                 <div class="mb-2 flex justify-between text-sm">
                     <span class="font-medium text-gray-700">진행률</span>
-                    <span class="text-blue-600 font-bold">${currentProgress}%</span>
+                    <span class="${goal.updateType === 'set' ? 'text-purple-600' : 'text-blue-600'} font-bold">${currentProgress}%</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4 overflow-hidden relative">
-                    <div class="progress-bar-fill bg-blue-500 h-2.5 rounded-full" style="width: ${currentProgress}%"></div>
+                    <div class="progress-bar-fill ${goal.updateType === 'set' ? 'bg-purple-500' : 'bg-blue-500'} h-2.5 rounded-full" style="width: ${currentProgress}%"></div>
                 </div>
                 
                 <div class="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
-                    <span class="text-sm text-gray-600 font-medium">진척도 추가 (%)</span>
+                    <span class="text-sm text-gray-600 font-medium">${updateMethodLabel} (%)</span>
                     <div class="flex items-center space-x-2">
-                        <input type="number" id="input-${goal.id}" placeholder="+ (퍼센트)" class="w-24 text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 px-2 py-1.5 border">
-                        <button onclick="addProgressPercent('${goal.id}', 'input-${goal.id}')" class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-md text-sm font-medium transition-colors">기록</button>
+                        <input type="number" id="input-${goal.id}" placeholder="${inputPlaceholder}" class="w-28 text-sm border-gray-300 rounded-md shadow-sm ${focusColor} px-2 py-1.5 border">
+                        <button onclick="addProgressPercent('${goal.id}', 'input-${goal.id}')" class="${buttonColor} px-3 py-1.5 rounded-md text-sm font-medium transition-colors">기록</button>
                     </div>
                 </div>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', cardHtml);
     });
-
-    // 로드맵 전체 평균 게이지 업데이트
-    if(goalsData.length > 0) {
-        let avgProgress = totalGlobalProgress / goalsData.length;
-        document.getElementById('bar-roadmap-main').style.height = `${avgProgress}%`;
-    }
 }
 
 /* ==========================================
-   목표 생성 및 진행 기록 저장 로직
+   데이터 DB 전송 (기록 & 새 목표)
    ========================================== */
-// 퍼센트 기록 추가 (0~100)
 window.addProgressPercent = async function(goalId, inputId) {
     const val = Number(document.getElementById(inputId).value);
-    if(!val || val <= 0) return;
+    if(isNaN(val)) return;
 
     try {
+        // 기존 percentageAdded 변수명을 범용적인 value 로 통일
         await addDoc(collection(db, "progress"), {
-            goalId: goalId,  // 매칭키
-            percentageAdded: val, // 추가할 퍼센트 값
+            goalId: goalId,
+            value: val, 
             timestamp: new Date()
         });
         document.getElementById(inputId).value = ''; 
@@ -125,25 +135,26 @@ window.addProgressPercent = async function(goalId, inputId) {
     }
 }
 
-// 새 목표 DB 저장
 window.saveNewGoal = async function() {
     const title = document.getElementById('goalTitle').value;
     const days = parseInt(document.getElementById('selectedDays').value);
+    
+    // 라디오 버튼(updateType)에서 선택된 값 가져오기 ('add' 또는 'set')
+    const updateType = document.querySelector('input[name="updateType"]:checked').value;
 
     if(!title || isNaN(days)) {
         document.getElementById('durationError').classList.remove('hidden');
         return;
     }
 
-    // 마감일(Deadline) 계산
     const deadline = new Date();
     deadline.setDate(deadline.getDate() + days);
 
     try {
-        // docId를 직접 짓지 않고 addDoc을 쓰면 Firebase가 고유 ID를 부여합니다.
         await addDoc(collection(db, "goals"), {
             title: title,
             durationDays: days,
+            updateType: updateType, // DB에 모드 속성 추가
             createdAt: new Date(),
             deadline: deadline
         });
@@ -154,18 +165,16 @@ window.saveNewGoal = async function() {
 }
 
 /* ==========================================
-   UI 컨트롤 (모달 및 버튼)
+   UI 컨트롤 (모달 뷰)
    ========================================== */
 const modal = document.getElementById('goalModal');
 const body = document.body;
 
 window.openNewGoalModal = function() {
-    // 입력폼 초기화
     document.getElementById('newGoalForm').reset();
     document.getElementById('selectedDays').value = '';
     document.getElementById('durationError').classList.add('hidden');
     
-    // 버튼 스타일 초기화
     document.querySelectorAll('.duration-btn').forEach(btn => {
         btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
         btn.classList.add('border-gray-300', 'text-gray-600');
@@ -184,13 +193,11 @@ window.selectDuration = function(days, btnElement) {
     document.getElementById('selectedDays').value = days;
     document.getElementById('durationError').classList.add('hidden');
     
-    // 모든 버튼 색상 리셋
     document.querySelectorAll('.duration-btn').forEach(btn => {
         btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
         btn.classList.add('border-gray-300', 'text-gray-600');
     });
     
-    // 선택된 버튼 하이라이트
     btnElement.classList.remove('border-gray-300', 'text-gray-600');
     btnElement.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
 }
