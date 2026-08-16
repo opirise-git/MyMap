@@ -17,15 +17,13 @@ window.db = db;
 window.collection = collection;
 window.addDoc = addDoc;
 
-// 메모리 캐시
 let goalsData = [];
-let rawProgressLogs = []; // 진척도 합산/덮어쓰기 로직을 위해 원본 로그 보관
+let rawProgressLogs = [];
 
 /* ==========================================
    실시간 데이터 구독
    ========================================== */
 const qGoals = query(collection(db, "goals"), orderBy("createdAt", "desc"));
-// 과거 기록부터 순서대로 가져오기 위해 orderBy 추가 (Set 방식 계산에 필수)
 const qProgress = query(collection(db, "progress"), orderBy("timestamp", "asc"));
 
 onSnapshot(qGoals, (snapshot) => {
@@ -45,43 +43,35 @@ onSnapshot(qProgress, (snapshot) => {
    ========================================== */
 function renderDashboard() {
     const container = document.getElementById('goals-container');
-    container.innerHTML = ''; // 화면 초기화
+    container.innerHTML = '';
 
     goalsData.forEach(goal => {
         let currentProgress = 0;
-        
-        // 해당 목표의 로그만 필터링
         const goalLogs = rawProgressLogs.filter(log => log.goalId === goal.id);
 
         if (goalLogs.length > 0) {
-            // 🔥 핵심 로직: 목표의 updateType에 따라 계산 방식 분기
             if (goal.updateType === 'set') {
-                // 진척도 설정 (Set): 가장 마지막에 기록된 값을 현재 진척도로 사용
                 currentProgress = goalLogs[goalLogs.length - 1].value;
             } else {
-                // 진척도 추가 (Add) [기본값]: 모든 기록을 합산
                 currentProgress = goalLogs.reduce((sum, log) => sum + log.value, 0);
             }
         }
         
-        // 100% 초과 방지
         currentProgress = Math.min(currentProgress, 100);
 
-        // D-Day 계산
         const deadlineDate = goal.deadline ? goal.deadline.toDate() : new Date();
         const diffTime = deadlineDate - new Date();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const ddayText = diffDays > 0 ? `D-${diffDays}` : (diffDays === 0 ? "D-Day" : `D+${Math.abs(diffDays)}`);
 
-        // 입력창 플레이스홀더 및 버튼 텍스트 변경
         const inputPlaceholder = goal.updateType === 'set' ? '= 설정할 퍼센트' : '+ 추가할 퍼센트';
         const updateMethodLabel = goal.updateType === 'set' ? '진척도 설정' : '진척도 추가';
         const buttonColor = goal.updateType === 'set' ? 'bg-purple-50 text-purple-600 hover:bg-purple-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100';
         const focusColor = goal.updateType === 'set' ? 'focus:ring-purple-500 focus:border-purple-500' : 'focus:ring-blue-500 focus:border-blue-500';
 
-        // 카드 뷰 (HTML 템플릿)
+        // 카드 뷰 (우측 상단에 히스토리 아이콘 버튼 추가)
         const cardHtml = `
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow relative">
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex items-center">
                         <div class="${goal.updateType === 'set' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'} p-3 rounded-lg mr-4">
@@ -92,6 +82,10 @@ function renderDashboard() {
                             <p class="text-xs text-gray-500 mt-1">${ddayText} · ${goal.durationDays}일 계획 <span class="ml-1 text-[10px] bg-gray-100 px-1.5 py-0.5 rounded">${updateMethodLabel} 모드</span></p>
                         </div>
                     </div>
+                    <!-- 히스토리 버튼 추가됨 -->
+                    <button onclick="openHistoryModal('${goal.id}', '${goal.title}', '${goal.updateType}')" class="text-gray-400 hover:text-blue-500 transition-colors p-2 rounded-full hover:bg-gray-50" title="기록 보기">
+                        <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+                    </button>
                 </div>
                 
                 <div class="mb-2 flex justify-between text-sm">
@@ -116,14 +110,13 @@ function renderDashboard() {
 }
 
 /* ==========================================
-   데이터 DB 전송 (기록 & 새 목표)
+   데이터 DB 전송
    ========================================== */
 window.addProgressPercent = async function(goalId, inputId) {
     const val = Number(document.getElementById(inputId).value);
     if(isNaN(val)) return;
 
     try {
-        // 기존 percentageAdded 변수명을 범용적인 value 로 통일
         await addDoc(collection(db, "progress"), {
             goalId: goalId,
             value: val, 
@@ -138,8 +131,6 @@ window.addProgressPercent = async function(goalId, inputId) {
 window.saveNewGoal = async function() {
     const title = document.getElementById('goalTitle').value;
     const days = parseInt(document.getElementById('selectedDays').value);
-    
-    // 라디오 버튼(updateType)에서 선택된 값 가져오기 ('add' 또는 'set')
     const updateType = document.querySelector('input[name="updateType"]:checked').value;
 
     if(!title || isNaN(days)) {
@@ -154,7 +145,7 @@ window.saveNewGoal = async function() {
         await addDoc(collection(db, "goals"), {
             title: title,
             durationDays: days,
-            updateType: updateType, // DB에 모드 속성 추가
+            updateType: updateType,
             createdAt: new Date(),
             deadline: deadline
         });
@@ -165,7 +156,7 @@ window.saveNewGoal = async function() {
 }
 
 /* ==========================================
-   UI 컨트롤 (모달 뷰)
+   [UI 컨트롤] 새 목표 모달
    ========================================== */
 const modal = document.getElementById('goalModal');
 const body = document.body;
@@ -200,4 +191,59 @@ window.selectDuration = function(days, btnElement) {
     
     btnElement.classList.remove('border-gray-300', 'text-gray-600');
     btnElement.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
+}
+
+/* ==========================================
+   [UI 컨트롤] 히스토리 모달 로직 (새로 추가됨)
+   ========================================== */
+window.openHistoryModal = function(goalId, goalTitle, updateType) {
+    const historyModal = document.getElementById('historyModal');
+    const listContainer = document.getElementById('historyList');
+    
+    // 모달 타이틀 업데이트
+    document.getElementById('historyGoalTitle').innerText = goalTitle;
+
+    // 해당 목표의 로그만 필터링 후 최신순(내림차순)으로 정렬
+    const goalLogs = rawProgressLogs
+        .filter(log => log.goalId === goalId)
+        .sort((a, b) => b.timestamp - a.timestamp); 
+
+    listContainer.innerHTML = ''; // 기존 리스트 초기화
+
+    if (goalLogs.length === 0) {
+        listContainer.innerHTML = '<li class="text-center text-gray-400 py-8 text-sm">아직 기록된 진척도가 없습니다.</li>';
+    } else {
+        goalLogs.forEach(log => {
+            // Firestore Timestamp를 JS Date 객체로 변환
+            const date = log.timestamp && log.timestamp.toDate ? log.timestamp.toDate() : new Date(log.timestamp || Date.now());
+            
+            // 날짜 예쁘게 포맷팅 (예: 2026. 08. 17. 14:30)
+            const dateString = date.toLocaleString('ko-KR', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+            });
+            
+            // 모드에 따른 기호 및 색상 처리
+            const prefix = updateType === 'set' ? '=' : '+';
+            const textColor = updateType === 'set' ? 'text-purple-600' : 'text-blue-600';
+
+            const li = document.createElement('li');
+            li.className = 'flex justify-between items-center py-3 border-b border-gray-100 last:border-0';
+            li.innerHTML = `
+                <span class="text-sm text-gray-500">${dateString}</span>
+                <span class="font-bold ${textColor}">${prefix}${log.value}%</span>
+            `;
+            listContainer.appendChild(li);
+        });
+    }
+
+    // 모달 띄우기
+    historyModal.classList.remove('opacity-0', 'pointer-events-none');
+    body.classList.add('modal-active');
+}
+
+window.closeHistoryModal = function() {
+    const historyModal = document.getElementById('historyModal');
+    historyModal.classList.add('opacity-0', 'pointer-events-none');
+    body.classList.remove('modal-active');
 }
