@@ -40,7 +40,15 @@
         <!-- 헤더 및 새 목표 버튼 -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">안녕하세요, 가을님! 👋</h1>
+                <!-- 이모지 대신 감성 캐릭터 이미지로 교체된 부분 -->
+                <h1 class="text-2xl font-bold text-gray-900 flex items-center">
+                    안녕하세요, 가을님!
+                    <!-- 
+                      나중에 원하는 이미지가 생기면 src 안의 주소를 "./my-character.png" 등으로 변경하세요.
+                      지금은 DiceBear API를 사용하여 임시 감성 아바타를 띄워줍니다. 
+                    -->
+                    <img src="https://api.dicebear.com/9.x/micah/svg?seed=Kaeul&backgroundColor=ffd5dc" alt="캐릭터" class="w-9 h-9 ml-2 rounded-full shadow-sm border-2 border-white object-cover">
+                </h1>
                 <p class="text-sm text-gray-500 mt-1">오늘도 목표를 향해 조금씩 나아가고 있어요.</p>
             </div>
             <button onclick="openNewGoalModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-5 rounded-lg shadow-sm transition-colors flex items-center">
@@ -48,11 +56,7 @@
             </button>
         </div>
 
-        <!-- 
-            카드 뷰 (Card GUI) 컨테이너
-            - 로드맵이 사라진 대신 카드가 화면을 넓게 쓰도록 grid-cols-2 로 변경했습니다.
-            - 실제 카드 HTML은 firebase-logic.js에서 동적으로 주입됩니다.
-        -->
+        <!-- 카드 뷰 (Card GUI) 컨테이너 -->
         <h2 class="text-lg font-bold text-gray-800 border-b pb-2 mb-6">현재 진행 중인 목표</h2>
         <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- DB 데이터 기반으로 이곳에 카드가 자동 주입됩니다 -->
@@ -84,7 +88,7 @@
                         <input type="text" id="goalTitle" placeholder="예: 매일 아침 조깅하기" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
                     </div>
 
-                    <!-- 입력 2: 진행 사항 업데이트 방식 (새로 추가됨) -->
+                    <!-- 입력 2: 진행 사항 업데이트 방식 -->
                     <div class="mb-5 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
                         <label class="block text-gray-800 text-sm font-bold mb-3">진행 사항 업데이트 방식</label>
                         <div class="flex flex-col space-y-3">
