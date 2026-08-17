@@ -45,9 +45,22 @@
             </button>
         </div>
 
-        <h2 class="text-lg font-bold text-gray-800 border-b pb-2 mb-6">현재 진행 중인 목표</h2>
-        <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- DB 데이터 기반으로 카드가 자동 주입됩니다 -->
+        <!-- 현재 진행 중인 목표 영역 -->
+        <div id="active-goals-wrapper">
+            <h2 class="text-lg font-bold text-gray-800 border-b pb-2 mb-6">현재 진행 중인 목표</h2>
+            <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 진행 중인 카드가 자동 주입됩니다 -->
+            </div>
+        </div>
+
+        <!-- 완료한 목표 영역 (새로 추가됨) -->
+        <div id="completed-goals-wrapper" class="mt-14 hidden">
+            <h2 class="text-lg font-bold text-gray-500 border-b pb-2 mb-6 flex items-center">
+                완료한 목표 <i class="fa-solid fa-medal ml-2 text-amber-400 text-xl"></i>
+            </h2>
+            <div id="completed-goals-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-75">
+                <!-- 100% 이상 달성한 카드가 이곳으로 이동합니다 -->
+            </div>
         </div>
     </main>
 
@@ -123,11 +136,10 @@
         </div>
     </div>
 
-    <!-- [4] 히스토리 보기 모달 (새로 추가됨) -->
+    <!-- [4] 히스토리 보기 모달 -->
     <div id="historyModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
         <div class="absolute w-full h-full bg-gray-900 opacity-50" onclick="closeHistoryModal()"></div>
         <div class="bg-white w-11/12 md:max-w-md mx-auto rounded-xl shadow-lg z-50 flex flex-col max-h-[80vh]">
-            <!-- 헤더 영역 -->
             <div class="py-4 px-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
                 <div>
                     <p class="text-sm text-gray-500 font-medium">진척도 기록</p>
@@ -138,7 +150,6 @@
                 </div>
             </div>
             
-            <!-- 리스트 영역 (스크롤 적용) -->
             <div class="p-6 overflow-y-auto flex-grow">
                 <ul id="historyList" class="space-y-1">
                     <!-- 자바스크립트를 통해 이곳에 히스토리가 꽂힙니다 -->
