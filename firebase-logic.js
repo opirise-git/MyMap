@@ -42,8 +42,16 @@ onSnapshot(qProgress, (snapshot) => {
    [카드 GUI] 동적 렌더링 함수
    ========================================== */
 function renderDashboard() {
-    const container = document.getElementById('goals-container');
-    container.innerHTML = '';
+    const activeContainer = document.getElementById('goals-container');
+    const completedContainer = document.getElementById('completed-goals-container');
+    const activeWrapper = document.getElementById('active-goals-wrapper');
+    const completedWrapper = document.getElementById('completed-goals-wrapper');
+    
+    activeContainer.innerHTML = '';
+    completedContainer.innerHTML = '';
+
+    let activeCount = 0;
+    let completedCount = 0;
 
     goalsData.forEach(goal => {
         let currentProgress = 0;
@@ -57,7 +65,10 @@ function renderDashboard() {
             }
         }
         
-        currentProgress = Math.min(currentProgress, 100);
+        // 🔥 100% 달성 여부 판별
+        const isCompleted = currentProgress >= 100;
+        // 뷰포트가 깨지지 않도록 프로그레스바 그래픽 너비만 최대 100%로 제한
+        const progressBarWidth = Math.min(currentProgress, 100); 
 
         const deadlineDate = goal.deadline ? goal.deadline.toDate() : new Date();
         const diffTime = deadlineDate - new Date();
@@ -68,32 +79,24 @@ function renderDashboard() {
         const updateMethodLabel = goal.updateType === 'set' ? '진척도 설정' : '진척도 추가';
         const buttonColor = goal.updateType === 'set' ? 'bg-purple-50 text-purple-600 hover:bg-purple-100' : 'bg-blue-50 text-blue-600 hover:bg-blue-100';
         const focusColor = goal.updateType === 'set' ? 'focus:ring-purple-500 focus:border-purple-500' : 'focus:ring-blue-500 focus:border-blue-500';
+        const progressTextColor = goal.updateType === 'set' ? 'text-purple-600' : 'text-blue-600';
+        const progressFillColor = goal.updateType === 'set' ? 'bg-purple-500' : 'bg-blue-500';
 
-        const cardHtml = `
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow relative">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="flex items-center">
-                        <div class="${goal.updateType === 'set' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'} p-3 rounded-lg mr-4">
-                            <i class="fa-solid fa-bullseye text-xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-lg text-gray-900">${goal.title}</h3>
-                            <p class="text-xs text-gray-500 mt-1">${ddayText} · ${goal.durationDays}일 계획 <span class="ml-1 text-[10px] bg-gray-100 px-1.5 py-0.5 rounded">${updateMethodLabel} 모드</span></p>
-                        </div>
+        // 🔥 달성(isCompleted) 상태에 따라 카드 테마 변경
+        const cardBgClass = isCompleted ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-100 hover:shadow-md';
+        
+        // 🔥 달성(isCompleted) 상태에 따라 하단 입력부 영역 교체 (비활성화)
+        let inputSectionHtml = '';
+        if (isCompleted) {
+            inputSectionHtml = `
+                <div class="mt-4 pt-4 border-t border-gray-100 flex justify-center">
+                    <div class="text-xs font-bold text-gray-400 bg-gray-100 border border-gray-200 px-4 py-2.5 rounded-lg w-full text-center flex items-center justify-center shadow-inner">
+                        <i class="fa-solid fa-lock mr-2"></i> 목표 달성으로 기록이 마감되었습니다
                     </div>
-                    <button onclick="openHistoryModal('${goal.id}', '${goal.title}', '${goal.updateType}')" class="text-gray-400 hover:text-blue-500 transition-colors p-2 rounded-full hover:bg-gray-50" title="기록 보기">
-                        <i class="fa-solid fa-clock-rotate-left text-lg"></i>
-                    </button>
                 </div>
-                
-                <div class="mb-2 flex justify-between text-sm">
-                    <span class="font-medium text-gray-700">진행률</span>
-                    <span class="${goal.updateType === 'set' ? 'text-purple-600' : 'text-blue-600'} font-bold">${currentProgress}%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4 overflow-hidden relative">
-                    <div class="progress-bar-fill ${goal.updateType === 'set' ? 'bg-purple-500' : 'bg-blue-500'} h-2.5 rounded-full" style="width: ${currentProgress}%"></div>
-                </div>
-                
+            `;
+        } else {
+            inputSectionHtml = `
                 <div class="mt-4 pt-4 border-t border-gray-50 flex flex-col space-y-3">
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-gray-600 font-medium">${updateMethodLabel} (%)</span>
@@ -104,10 +107,60 @@ function renderDashboard() {
                     </div>
                     <input type="text" id="comment-${goal.id}" placeholder="오늘의 기분을 입력해보세요" class="w-full text-xs text-gray-700 border-gray-200 rounded-md shadow-sm ${focusColor} px-3 py-2 border bg-gray-50 focus:bg-white transition-colors">
                 </div>
+            `;
+        }
+
+        const cardHtml = `
+            <div class="rounded-xl shadow-sm border p-5 transition-shadow relative ${cardBgClass}">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center">
+                        <div class="${goal.updateType === 'set' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'} p-3 rounded-lg mr-4 ${isCompleted ? 'opacity-50' : ''}">
+                            <i class="fa-solid fa-bullseye text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-900">${goal.title}</h3>
+                            <p class="text-xs text-gray-500 mt-1">${ddayText} · ${goal.durationDays}일 계획 <span class="ml-1 text-[10px] bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">${updateMethodLabel} 모드</span></p>
+                        </div>
+                    </div>
+                    <button onclick="openHistoryModal('${goal.id}', '${goal.title}', '${goal.updateType}')" class="text-gray-400 hover:text-blue-500 transition-colors p-2 rounded-full hover:bg-gray-100" title="기록 보기">
+                        <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+                    </button>
+                </div>
+                
+                <div class="mb-2 flex justify-between text-sm">
+                    <span class="font-medium text-gray-700">진행률</span>
+                    <span class="${progressTextColor} font-bold">${currentProgress}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4 overflow-hidden relative">
+                    <div class="progress-bar-fill ${progressFillColor} h-2.5 rounded-full" style="width: ${progressBarWidth}%"></div>
+                </div>
+                
+                ${inputSectionHtml}
             </div>
         `;
-        container.insertAdjacentHTML('beforeend', cardHtml);
+        
+        // 완료 여부에 따라 다른 컨테이너에 주입
+        if (isCompleted) {
+            completedContainer.insertAdjacentHTML('beforeend', cardHtml);
+            completedCount++;
+        } else {
+            activeContainer.insertAdjacentHTML('beforeend', cardHtml);
+            activeCount++;
+        }
     });
+
+    // 영역 보이기/숨기기 처리
+    if (activeCount > 0) {
+        activeWrapper.classList.remove('hidden');
+    } else {
+        activeContainer.innerHTML = '<div class="col-span-full text-center py-12 bg-white rounded-xl border border-gray-100 border-dashed text-gray-400">현재 진행 중인 목표가 없습니다. 새로운 목표를 설정해보세요!</div>';
+    }
+
+    if (completedCount > 0) {
+        completedWrapper.classList.remove('hidden');
+    } else {
+        completedWrapper.classList.add('hidden');
+    }
 }
 
 /* ==========================================
@@ -200,7 +253,7 @@ window.selectDuration = function(days, btnElement) {
 }
 
 /* ==========================================
-   [UI 컨트롤] 히스토리 모달 로직 (누적 100% 하이라이팅 추가)
+   [UI 컨트롤] 히스토리 모달 로직
    ========================================== */
 window.openHistoryModal = function(goalId, goalTitle, updateType) {
     const historyModal = document.getElementById('historyModal');
@@ -208,23 +261,20 @@ window.openHistoryModal = function(goalId, goalTitle, updateType) {
     
     document.getElementById('historyGoalTitle').innerText = goalTitle;
 
-    // 1. 과거 기록부터 순서대로 정렬 (누적합 계산을 위해 오름차순 정렬)
     let goalLogs = rawProgressLogs
         .filter(log => log.goalId === goalId)
         .sort((a, b) => a.timestamp - b.timestamp); 
 
-    // 2. 모드에 따른 진척도 누적합 계산
     let cumulative = 0;
     goalLogs = goalLogs.map(log => {
         if (updateType === 'add') {
             cumulative += log.value;
             return { ...log, currentTotal: cumulative };
         } else {
-            return { ...log, currentTotal: log.value }; // 설정 모드는 입력값 자체가 전체 달성률
+            return { ...log, currentTotal: log.value };
         }
     });
 
-    // 3. 최신 기록이 위로 오도록 다시 내림차순 정렬
     goalLogs.sort((a, b) => b.timestamp - a.timestamp);
 
     listContainer.innerHTML = '';
@@ -241,17 +291,13 @@ window.openHistoryModal = function(goalId, goalTitle, updateType) {
             });
             
             const prefix = updateType === 'set' ? '=' : '+';
-            
-            // 🔥 100% 달성 또는 초과 여부 확인
             const isOver100 = log.currentTotal >= 100;
             
-            // 하이라이팅 스타일 정의
             const highlightBg = isOver100 ? 'bg-amber-50/60 px-3 -mx-3 rounded-xl' : '';
             const badgeHtml = isOver100 
                 ? `<span class="ml-2 text-[10px] font-bold text-white bg-amber-500 px-2 py-0.5 rounded-full shadow-sm">🎉 목표 100% 달성</span>` 
                 : '';
                 
-            // 초과 시 텍스트 폰트 굵기 강화
             const textColor = updateType === 'set' 
                 ? (isOver100 ? 'text-purple-600 font-extrabold' : 'text-purple-600 font-bold') 
                 : (isOver100 ? 'text-blue-600 font-extrabold' : 'text-blue-600 font-bold');
