@@ -11,14 +11,15 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+export const db = getFirestore(app);
 
+// window 전역 스코프에 노출 (인라인 이벤트 리스너용)
 window.db = db;
 window.collection = collection;
 window.addDoc = addDoc;
 
-let goalsData = [];
-let rawProgressLogs = [];
+export let goalsData = [];
+export let rawProgressLogs = [];
 
 /* ==========================================
    실시간 데이터 구독
@@ -65,9 +66,7 @@ function renderDashboard() {
             }
         }
         
-        // 🔥 100% 달성 여부 판별
         const isCompleted = currentProgress >= 100;
-        // 뷰포트가 깨지지 않도록 프로그레스바 그래픽 너비만 최대 100%로 제한
         const progressBarWidth = Math.min(currentProgress, 100); 
 
         const deadlineDate = goal.deadline ? goal.deadline.toDate() : new Date();
@@ -82,10 +81,8 @@ function renderDashboard() {
         const progressTextColor = goal.updateType === 'set' ? 'text-purple-600' : 'text-blue-600';
         const progressFillColor = goal.updateType === 'set' ? 'bg-purple-500' : 'bg-blue-500';
 
-        // 🔥 달성(isCompleted) 상태에 따라 카드 테마 변경
         const cardBgClass = isCompleted ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-100 hover:shadow-md';
         
-        // 🔥 달성(isCompleted) 상태에 따라 하단 입력부 영역 교체 (비활성화)
         let inputSectionHtml = '';
         if (isCompleted) {
             inputSectionHtml = `
@@ -139,7 +136,6 @@ function renderDashboard() {
             </div>
         `;
         
-        // 완료 여부에 따라 다른 컨테이너에 주입
         if (isCompleted) {
             completedContainer.insertAdjacentHTML('beforeend', cardHtml);
             completedCount++;
@@ -149,7 +145,6 @@ function renderDashboard() {
         }
     });
 
-    // 영역 보이기/숨기기 처리
     if (activeCount > 0) {
         activeWrapper.classList.remove('hidden');
     } else {
@@ -164,7 +159,7 @@ function renderDashboard() {
 }
 
 /* ==========================================
-   데이터 DB 전송
+   데이터 DB 전송 (Progress 추가)
    ========================================== */
 window.addProgressPercent = async function(goalId, inputId, commentId) {
     const val = Number(document.getElementById(inputId).value);
@@ -185,154 +180,4 @@ window.addProgressPercent = async function(goalId, inputId, commentId) {
     } catch (e) {
         console.error("Error adding progress: ", e);
     }
-}
-
-window.saveNewGoal = async function() {
-    const title = document.getElementById('goalTitle').value;
-    const days = parseInt(document.getElementById('selectedDays').value);
-    const updateType = document.querySelector('input[name="updateType"]:checked').value;
-
-    if(!title || isNaN(days)) {
-        document.getElementById('durationError').classList.remove('hidden');
-        return;
-    }
-
-    const deadline = new Date();
-    deadline.setDate(deadline.getDate() + days);
-
-    try {
-        await addDoc(collection(db, "goals"), {
-            title: title,
-            durationDays: days,
-            updateType: updateType,
-            createdAt: new Date(),
-            deadline: deadline
-        });
-        closeModal();
-    } catch (e) {
-        console.error("Error saving new goal: ", e);
-    }
-}
-
-/* ==========================================
-   [UI 컨트롤] 새 목표 모달
-   ========================================== */
-const modal = document.getElementById('goalModal');
-const body = document.body;
-
-window.openNewGoalModal = function() {
-    document.getElementById('newGoalForm').reset();
-    document.getElementById('selectedDays').value = '';
-    document.getElementById('durationError').classList.add('hidden');
-    
-    document.querySelectorAll('.duration-btn').forEach(btn => {
-        btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
-        btn.classList.add('border-gray-300', 'text-gray-600');
-    });
-
-    modal.classList.remove('opacity-0', 'pointer-events-none');
-    body.classList.add('modal-active');
-}
-
-window.closeModal = function() {
-    modal.classList.add('opacity-0', 'pointer-events-none');
-    body.classList.remove('modal-active');
-}
-
-window.selectDuration = function(days, btnElement) {
-    document.getElementById('selectedDays').value = days;
-    document.getElementById('durationError').classList.add('hidden');
-    
-    document.querySelectorAll('.duration-btn').forEach(btn => {
-        btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
-        btn.classList.add('border-gray-300', 'text-gray-600');
-    });
-    
-    btnElement.classList.remove('border-gray-300', 'text-gray-600');
-    btnElement.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
-}
-
-/* ==========================================
-   [UI 컨트롤] 히스토리 모달 로직
-   ========================================== */
-window.openHistoryModal = function(goalId, goalTitle, updateType) {
-    const historyModal = document.getElementById('historyModal');
-    const listContainer = document.getElementById('historyList');
-    
-    document.getElementById('historyGoalTitle').innerText = goalTitle;
-
-    let goalLogs = rawProgressLogs
-        .filter(log => log.goalId === goalId)
-        .sort((a, b) => a.timestamp - b.timestamp); 
-
-    let cumulative = 0;
-    goalLogs = goalLogs.map(log => {
-        if (updateType === 'add') {
-            cumulative += log.value;
-            return { ...log, currentTotal: cumulative };
-        } else {
-            return { ...log, currentTotal: log.value };
-        }
-    });
-
-    goalLogs.sort((a, b) => b.timestamp - a.timestamp);
-
-    listContainer.innerHTML = '';
-
-    if (goalLogs.length === 0) {
-        listContainer.innerHTML = '<li class="text-center text-gray-400 py-8 text-sm">아직 기록된 진척도가 없습니다.</li>';
-    } else {
-        goalLogs.forEach(log => {
-            const date = log.timestamp && log.timestamp.toDate ? log.timestamp.toDate() : new Date(log.timestamp || Date.now());
-            
-            const dateString = date.toLocaleString('ko-KR', {
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit'
-            });
-            
-            const prefix = updateType === 'set' ? '=' : '+';
-            const isOver100 = log.currentTotal >= 100;
-            
-            const highlightBg = isOver100 ? 'bg-amber-50/60 px-3 -mx-3 rounded-xl' : '';
-            const badgeHtml = isOver100 
-                ? `<span class="ml-2 text-[10px] font-bold text-white bg-amber-500 px-2 py-0.5 rounded-full shadow-sm">🎉 목표 100% 달성</span>` 
-                : '';
-                
-            const textColor = updateType === 'set' 
-                ? (isOver100 ? 'text-purple-600 font-extrabold' : 'text-purple-600 font-bold') 
-                : (isOver100 ? 'text-blue-600 font-extrabold' : 'text-blue-600 font-bold');
-            
-            const commentHtml = log.comment 
-                ? `<div class="mt-2 w-full flex">
-                     <div class="relative text-sm text-gray-900 bg-gray-200 rounded-2xl px-3.5 py-2 w-fit max-w-[95%] break-words">
-                       <div class="absolute -top-1 left-4 w-3 h-3 bg-gray-200 rotate-45 rounded-sm"></div>
-                       <span class="relative z-10 leading-snug block">${log.comment}</span>
-                     </div>
-                   </div>` 
-                : '';
-
-            const li = document.createElement('li');
-            li.className = `flex flex-col py-3 border-b border-gray-100 last:border-0 transition-colors ${highlightBg}`;
-            li.innerHTML = `
-                <div class="flex justify-between items-center w-full">
-                    <div class="flex items-center">
-                        <span class="text-sm ${isOver100 ? 'text-gray-800 font-medium' : 'text-gray-500'}">${dateString}</span>
-                        ${badgeHtml}
-                    </div>
-                    <span class="${textColor}">${prefix}${log.value}%</span>
-                </div>
-                ${commentHtml}
-            `;
-            listContainer.appendChild(li);
-        });
-    }
-
-    historyModal.classList.remove('opacity-0', 'pointer-events-none');
-    document.body.classList.add('modal-active');
-}
-
-window.closeHistoryModal = function() {
-    const historyModal = document.getElementById('historyModal');
-    historyModal.classList.add('opacity-0', 'pointer-events-none');
-    document.body.classList.remove('modal-active');
 }
